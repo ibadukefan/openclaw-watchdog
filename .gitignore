@@ -1,0 +1,19 @@
+# Build
+.build/
+DerivedData/
+*.xcodeproj
+*.xcworkspace
+
+# Swift Package Manager
+.swiftpm/
+Package.resolved
+
+# macOS
+.DS_Store
+*.dSYM
+
+# Logs
+*.log
+
+# Local config
+.env
