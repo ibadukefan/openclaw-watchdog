@@ -329,11 +329,11 @@ check_gateway_process() {
 
 check_gateway_health() {
     local start_ms=$(python3 -c "import time; print(int(time.time() * 1000))" 2>/dev/null || date +%s%3N)
-    local response=$(timeout 10 curl -s -w "\n%{http_code}" "$GATEWAY_URL/health" 2>/dev/null)
-    local end_ms=$(python3 -c "import time; print(int(time.time() * 1000))" 2>/dev/null || date +%s%3N)
     
-    local http_code=$(echo "$response" | tail -1)
-    local body=$(echo "$response" | sed '$d')
+    # OpenClaw serves a SPA, so we just check for HTTP 200 on the root
+    local http_code=$(timeout 10 curl -s -o /dev/null -w "%{http_code}" "$GATEWAY_URL/" 2>/dev/null)
+    
+    local end_ms=$(python3 -c "import time; print(int(time.time() * 1000))" 2>/dev/null || date +%s%3N)
     local response_time=$((end_ms - start_ms))
     
     echo "$response_time" > "${WATCHDOG_DIR}/last_response_time"
@@ -345,14 +345,8 @@ check_gateway_health() {
         send_alert "response_slow" "Gateway response time slow: ${response_time}ms" "warning"
     fi
     
-    # Verify response
-    if [[ "$http_code" == "200" ]]; then
-        if echo "$body" | python3 -c "import sys,json; d=json.load(sys.stdin); sys.exit(0 if d.get('status')=='ok' or 'ok' in str(d).lower() else 1)" 2>/dev/null; then
-            return 0
-        fi
-    fi
-    
-    return 1
+    # HTTP 200 means gateway is healthy
+    [[ "$http_code" == "200" ]]
 }
 
 check_config_exists() {
